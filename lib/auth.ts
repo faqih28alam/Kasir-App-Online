@@ -17,7 +17,7 @@ export function saveAuth(token: string, user: AuthUser) {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
   // cookie — used by middleware for server-side route protection
-  Cookies.set(SESSION_COOKIE, user.role, { expires: 0.5, path: "/" });
+  Cookies.set(SESSION_COOKIE, user.role, { expires: 0.75, path: "/" });
 }
 
 export function getToken(): string | undefined {

@@ -13,7 +13,8 @@ interface BarangResult { barcode: string; nama_barang: string; sat: string; hpp:
 interface StoreSetting { nama_toko: string; alamat: string; telepon: string; }
 
 function fmt(n: number) { return Number(n).toLocaleString("id-ID"); }
-function today() { return new Date().toISOString().slice(0, 10); }
+function toLocalYMD(d: Date) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function today() { return toLocalYMD(new Date()); }
 function firstOfMonth() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-01`; }
 
 const SATUAN = ["PCS","BTL","KG","GR","LTR","ML","BUNGKUS","SACHET","PAK","RENTENG","LUSIN","DUS","KARTON","SLOP","KODI"];
@@ -30,7 +31,7 @@ export default function PurchasPage() {
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
   const [exporting, setExporting] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const [header, setHeader] = useState({ no_faktur: "", tanggal: new Date().toISOString().slice(0,10) });
+  const [header, setHeader] = useState({ no_faktur: "", tanggal: toLocalYMD(new Date()) });
   const [detail, setDetail] = useState<DetailItem[]>([{ barcode: "", nama_barang: "", sat: "PCS", qty: 1, hpp: 0, harga_1: 0 }]);
 
   async function load() {
@@ -133,14 +134,14 @@ export default function PurchasPage() {
 
   function openCreateModal() {
     setEditId(null);
-    setHeader({ no_faktur: "", tanggal: new Date().toISOString().slice(0, 10) });
+    setHeader({ no_faktur: "", tanggal: toLocalYMD(new Date()) });
     setDetail([{ barcode: "", nama_barang: "", sat: "PCS", qty: 1, hpp: 0, harga_1: 0 }]);
     setShowModal(true);
   }
 
   function openEditModal(r: PembelianRow) {
     setEditId(r.id);
-    setHeader({ no_faktur: r.no_faktur, tanggal: new Date(r.tanggal).toISOString().slice(0, 10) });
+    setHeader({ no_faktur: r.no_faktur, tanggal: toLocalYMD(new Date(r.tanggal)) });
     setDetail(r.detail.map((d) => ({ barcode: d.barcode, nama_barang: d.nama_barang, sat: d.sat, qty: Number(d.qty), hpp: Number(d.hpp), harga_1: Number(d.harga_1 ?? 0) })));
     setShowModal(true);
   }
@@ -149,7 +150,7 @@ export default function PurchasPage() {
     if (!header.no_faktur.trim()) { toast("No. Faktur wajib diisi", "error"); return; }
     if (detail.length === 0) { toast("Tambahkan minimal 1 barang", "error"); return; }
     try {
-      const payload = { ...header, tanggal: new Date(header.tanggal).toISOString(), detail };
+      const payload = { ...header, tanggal: `${header.tanggal}T00:00:00`, detail };
       if (editId !== null) {
         await api.put(`/purchas/${editId}`, payload);
         toast("Pembelian diperbarui", "success");

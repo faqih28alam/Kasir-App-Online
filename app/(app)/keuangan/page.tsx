@@ -8,7 +8,7 @@ import { Modal } from "@/components/shared/Modal";
 
 interface KeuanganRow { id: number; tanggal: string; keterangan: string; debit: number; kredit: number; ref_type?: string; }
 
-function today() { return new Date().toISOString().slice(0, 10); }
+function today() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function firstOfMonth() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-01`; }
 function fmt(n: number) { return Number(n).toLocaleString("id-ID"); }
 

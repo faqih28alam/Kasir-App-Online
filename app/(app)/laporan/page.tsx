@@ -9,9 +9,10 @@ import { api } from "@/lib/api";
 import { toast } from "@/components/shared/Toast";
 import { DataTable } from "@/components/shared/DataTable";
 
-function today() { return new Date().toISOString().slice(0, 10); }
+function toLocalYMD(d: Date) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function today() { return toLocalYMD(new Date()); }
 function firstOfMonth() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-01`; }
-function daysAgo(n: number) { const d = new Date(); d.setDate(d.getDate() - n + 1); return d.toISOString().slice(0, 10); }
+function daysAgo(n: number) { const d = new Date(); d.setDate(d.getDate() - n + 1); return toLocalYMD(d); }
 function fmt(n: number) { return Number(n).toLocaleString("id-ID"); }
 function fmtShort(n: number) { return n >= 1_000_000 ? `${(n/1_000_000).toFixed(1)}Jt` : n >= 1_000 ? `${(n/1_000).toFixed(0)}K` : String(n); }
 function fmtDate(s: string) { const d = new Date(s); return `${d.getDate()}/${d.getMonth()+1}`; }

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, FileDown } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "@/components/shared/Toast";
 import { DataTable } from "@/components/shared/DataTable";
@@ -14,12 +14,15 @@ interface Barang {
   id_kategori?: number; harga_tiers: HargaTier[];
 }
 
+interface StoreSetting { nama_toko: string; alamat: string; telepon: string; }
+
 const EMPTY: Barang = {
   barcode: "", nama_barang: "", sat: "PCS", hpp: 0,
   harga_1: 0, stok: 0, stok_minimum: 0, harga_tiers: [],
 };
 
 function fmt(n: number) { return Number(n).toLocaleString("id-ID"); }
+function toLocalYMD(d: Date) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 
 export default function MasterPage() {
   const [data, setData] = useState<Barang[]>([]);
@@ -28,6 +31,8 @@ export default function MasterPage() {
   const [tiers, setTiers] = useState<HargaTier[]>([]);
   const [editBarcode, setEditBarcode] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [setting, setSetting] = useState<StoreSetting>({ nama_toko: "", alamat: "", telepon: "" });
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -37,6 +42,63 @@ export default function MasterPage() {
   }, [q]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { api.get<StoreSetting>("/setting/").then(setSetting).catch(() => {}); }, []);
+
+  async function handleExportPDF() {
+    setExporting(true);
+    try {
+      const { default: jsPDF } = await import("jspdf");
+      const { default: autoTable } = await import("jspdf-autotable");
+
+      const doc = new jsPDF({ orientation: "landscape" });
+      const pageW = doc.internal.pageSize.getWidth();
+      let y = 15;
+
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text(setting.nama_toko || "Daftar Harga Barang", pageW / 2, y, { align: "center" });
+      y += 7;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100);
+      if (setting.alamat) { doc.text(setting.alamat, pageW / 2, y, { align: "center" }); y += 5; }
+      if (setting.telepon) { doc.text(`Telp: ${setting.telepon}`, pageW / 2, y, { align: "center" }); y += 5; }
+      doc.text(`Dicetak: ${new Date().toLocaleString("id-ID")}`, pageW / 2, y, { align: "center" }); y += 8;
+
+      doc.setDrawColor(200);
+      doc.line(14, y, pageW - 14, y);
+      y += 8;
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0);
+      doc.text("Daftar Harga Barang", 14, y); y += 6;
+
+      autoTable(doc, {
+        startY: y,
+        head: [["Barcode", "Nama Barang", "SAT", "Harga Eceran"]],
+        body: data.map((b) => [
+          b.barcode,
+          b.nama_barang,
+          b.sat,
+          `Rp ${fmt(b.harga_1)}`,
+        ]),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [31, 41, 55] },
+        columnStyles: {
+          3: { halign: "right" },
+        },
+        margin: { left: 14, right: 14 },
+      });
+
+      doc.save(`Pricelist_Barang_${toLocalYMD(new Date())}.pdf`);
+      toast("PDF berhasil diekspor", "success");
+    } catch {
+      toast("Gagal ekspor PDF", "error");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   function openCreate() { setForm(EMPTY); setTiers([]); setEditBarcode(null); setShowModal(true); }
   function openEdit(b: Barang) { setForm(b); setTiers(b.harga_tiers ?? []); setEditBarcode(b.barcode); setShowModal(true); }
@@ -109,9 +171,14 @@ export default function MasterPage() {
           <h1 className="text-lg font-bold text-gray-800">Master Barang</h1>
           <p className="text-xs text-gray-500 mt-0.5">Kelola data produk: barcode, harga jual bertingkat (grosir), HPP, dan stok minimum.</p>
         </div>
-        <button onClick={openCreate} className="flex items-center gap-1 bg-gray-800 hover:bg-gray-700 text-white px-3 py-1.5 rounded text-sm flex-shrink-0">
-          <Plus size={14} /> Tambah
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button onClick={handleExportPDF} disabled={exporting} className="flex items-center gap-1 border border-gray-300 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded text-sm disabled:opacity-50">
+            <FileDown size={14} /> {exporting ? "Mengekspor..." : "Export PDF"}
+          </button>
+          <button onClick={openCreate} className="flex items-center gap-1 bg-gray-800 hover:bg-gray-700 text-white px-3 py-1.5 rounded text-sm">
+            <Plus size={14} /> Tambah
+          </button>
+        </div>
       </div>
       <div className="flex items-center gap-2 mb-4">
         <Search size={16} className="text-gray-400 flex-shrink-0" />

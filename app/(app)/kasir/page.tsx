@@ -89,7 +89,7 @@ export default function KasirPage() {
   useEffect(() => {
     if (!debouncedBarcode.trim()) { setSearchResults([]); return; }
     api.get<Barang[]>("/master/barang", { q: debouncedBarcode.trim() })
-      .then((res) => setSearchResults(res.slice(0, 8)))
+      .then((res) => setSearchResults(res.slice(0, 15)))
       .catch(() => setSearchResults([]));
   }, [debouncedBarcode]);
 
